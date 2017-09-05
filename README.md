@@ -3,7 +3,7 @@
 _discomon_ is a small _Go_ program, expected to run in _Kubernetes_, that fetches metrics from _Prometheus_, searches for known patterns and load corresponding dashboards in _Grafana_.
 
 This repository contains an _OpenShift_ template to deploy _Prometheus_, _Grafana_ and _discomon_ (`prometheus-grafana-discovery.yml`).
-There's another template (`wfapp/wfapp.yml`) to demo a _WildFly_ application deployed and automatically discovered in Prometheus and Grafana.
+There's another template (`wfapp/wfapp.yml`) to demo a _WildFly_ application deployed and automatically discovered in Prometheus and Grafana. This sample app is really just an empty wildfly with prometheus' JMX Exporter configured. No more.
 
 To make _Prometheus_ discover applications, their pods must be annotated `prometheus.io/scrape: 'true'`. Cf annotation in `wfapp/wfapp.yml`. The annotation can also be added afterwards by editing YAML.
 

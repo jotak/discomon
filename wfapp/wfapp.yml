@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: wfapp
+objects:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    generation: 1
+    labels:
+      app: wfapp
+    name: wfapp
+  spec:
+    replicas: 1
+    selector:
+      app: wfapp
+      deploymentconfig: wfapp
+    template:
+      metadata:
+        annotations:
+          prometheus.io/scrape: 'true'
+        labels:
+          app: wfapp
+          deploymentconfig: wfapp
+      spec:
+        containers:
+        - image: jotak/wf-jmxexporter-empty:latest
+          imagePullPolicy: Always
+          name: wf-jmxexporter-empty
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 9099
+            protocol: TCP
+          resources: {}
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30

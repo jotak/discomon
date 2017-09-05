@@ -8,4 +8,6 @@ RUN chmod +x /discomon
 #RUN chmod +x /usr/bin/fix-permissions && \
 #    /usr/bin/fix-permissions /discomon
 
+ADD ./grafana_tpl/* /grafana_tpl/
+
 ENTRYPOINT ["/discomon"]

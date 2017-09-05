@@ -17,8 +17,6 @@ objects:
       deploymentconfig: wfapp
     template:
       metadata:
-        annotations:
-          prometheus.io/scrape: 'true'
         labels:
           app: wfapp
           deploymentconfig: wfapp

@@ -18,6 +18,8 @@ objects:
       deploymentconfig: prometheus
     template:
       metadata:
+        annotations:
+          prometheus.io/scrape: 'false'
         labels:
           app: prometheus
           deploymentconfig: prometheus
@@ -29,6 +31,20 @@ objects:
             configMap:
               name: prom-config
               defaultMode: 420
+        initContainers:
+          - name: configmap-interpolation
+            image: busybox
+            command: [ "sh", "-c"]
+            args:
+            - sed -i "s/<NAMESPACE>/$NAMESPACE/g" /etc/configmap/prometheus.yml
+            env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            volumeMounts:
+            - name: prom-config-volume
+              mountPath: /etc/configmap/
         containers:
         - image: >-
             prom/prometheus@sha256:4f6d3a525f030e598016be765283c6455c3c830997a5c916b27a5d727be718e1
@@ -87,10 +103,13 @@ objects:
           bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
           kubernetes_sd_configs:
             - role: pod
+              namespaces:
+                names:
+                  - <NAMESPACE>
           relabel_configs:
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-            action: keep
-            regex: true
+            action: drop
+            regex: false
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
             action: replace
             target_label: __metrics_path__
@@ -124,6 +143,8 @@ objects:
       deploymentconfig: grafana
     template:
       metadata:
+        annotations:
+          prometheus.io/scrape: 'false'
         labels:
           app: grafana
           deploymentconfig: grafana
@@ -179,6 +200,8 @@ objects:
       deploymentconfig: discomon
     template:
       metadata:
+        annotations:
+          prometheus.io/scrape: 'false'
         labels:
           app: discomon
           deploymentconfig: discomon

@@ -1,0 +1,5 @@
+patterns:
+ jvm:
+  - "jvm.*"
+ prometheus:
+  - "prometheus.*"

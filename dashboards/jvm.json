@@ -6,33 +6,13 @@
      "canStar":true,
      "slug":"jvm",
      "expires":"0001-01-01T00:00:00Z",
-     "created":"2017-09-04T10:46:04Z",
-     "updated":"2017-09-04T10:46:04Z",
+     "created":"2017-09-06T09:17:20Z",
+     "updated":"2017-09-06T09:43:36Z",
      "updatedBy":"admin",
      "createdBy":"admin",
-     "version":0
+     "version":2
   },
   "dashboard":{
-     "__requires":[
-        {
-           "id":"grafana",
-           "name":"Grafana",
-           "type":"grafana",
-           "version":"4.5.0-pre1"
-        },
-        {
-           "id":"graph",
-           "name":"Graph",
-           "type":"panel",
-           "version":""
-        },
-        {
-           "id":"prometheus",
-           "name":"Prometheus",
-           "type":"datasource",
-           "version":"1.0.0"
-        }
-     ],
      "annotations":{
         "list":[
 
@@ -94,11 +74,11 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"jvm_memory_bytes_used{instance=~\"$instance\"}",
+                       "expr":"jvm_memory_bytes_used{instance=~\"$instance\",app=~\"$app\"}",
                        "format":"time_series",
                        "interval":"",
                        "intervalFactor":5,
-                       "legendFormat":"{{area}} memory [{{instance}}]",
+                       "legendFormat":"{{area}} memory [{{app}},{{instance}}]",
                        "metric":"jvm_memory_bytes_used",
                        "refId":"A",
                        "step":5
@@ -194,19 +174,19 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"jvm_threads_current{instance=~\"$instance\"}",
+                       "expr":"jvm_threads_current{instance=~\"$instance\",app=~\"$app\"}",
                        "format":"time_series",
                        "intervalFactor":5,
-                       "legendFormat":"current [{{instance}}]",
+                       "legendFormat":"current [{{app}},{{instance}}]",
                        "metric":"jvm_threads_current",
                        "refId":"A",
                        "step":10
                     },
                     {
-                       "expr":"jvm_threads_daemon{instance=~\"$instance\"}",
+                       "expr":"jvm_threads_daemon{instance=~\"$instance\",app=~\"$app\"}",
                        "format":"time_series",
                        "intervalFactor":5,
-                       "legendFormat":"daemon [{{instance}}]",
+                       "legendFormat":"daemon [{{app}},{{instance}}]",
                        "metric":"jvm_threads_daemon",
                        "refId":"B",
                        "step":10
@@ -291,11 +271,12 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"jvm_classes_loaded{instance=~\"$instance\"}",
+                       "expr":"jvm_classes_loaded{instance=~\"$instance\",app=~\"$app\"}",
                        "format":"time_series",
+                       "hide":false,
                        "interval":"",
                        "intervalFactor":5,
-                       "legendFormat":"loaded [{{instance}}]",
+                       "legendFormat":"loaded [{{app}},{{instance}}]",
                        "metric":"jvm_classes_loaded",
                        "refId":"A",
                        "step":10
@@ -392,11 +373,11 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"rate(jvm_gc_collection_seconds_sum{instance=~\"$instance\"}[1m])",
+                       "expr":"rate(jvm_gc_collection_seconds_sum{instance=~\"$instance\",app=~\"$app\"}[1m])",
                        "format":"time_series",
                        "interval":"",
                        "intervalFactor":5,
-                       "legendFormat":"{{gc}} [{{instance}}]",
+                       "legendFormat":"{{gc}} [{{app}},{{instance}}]",
                        "metric":"jvm_gc_collection_seconds_sum",
                        "refId":"A",
                        "step":10
@@ -480,11 +461,11 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"jvm_gc_collection_seconds_count{instance=~\"$instance\"}",
+                       "expr":"jvm_gc_collection_seconds_count{instance=~\"$instance\",app=~\"$app\"}",
                        "format":"time_series",
                        "interval":"",
                        "intervalFactor":5,
-                       "legendFormat":"{{gc}} [{{instance}}]",
+                       "legendFormat":"{{gc}} [{{app}},{{instance}}]",
                        "metric":"",
                        "refId":"A",
                        "step":10
@@ -551,7 +532,8 @@
            {
               "allValue":"",
               "current":{
-
+                 "text":"All",
+                 "value":"$__all"
               },
               "datasource":"prometheus",
               "hide":0,
@@ -563,7 +545,39 @@
 
               ],
               "query":"label_values(instance)",
-              "refresh":1,
+              "refresh":2,
+              "regex":"",
+              "sort":0,
+              "tagValuesQuery":"",
+              "tags":[
+
+              ],
+              "tagsQuery":"",
+              "type":"query",
+              "useTags":false
+           },
+           {
+              "allValue":"",
+              "current":{
+                 "tags":[
+
+                 ],
+                 "text":"All",
+                 "value":[
+                    "$__all"
+                 ]
+              },
+              "datasource":"prometheus",
+              "hide":0,
+              "includeAll":true,
+              "label":"App",
+              "multi":true,
+              "name":"app",
+              "options":[
+
+              ],
+              "query":"label_values(app)",
+              "refresh":2,
               "regex":"",
               "sort":0,
               "tagValuesQuery":"",
@@ -605,8 +619,8 @@
            "30d"
         ]
      },
-     "timezone":"",
+     "timezone":"browser",
      "title":"JVM",
-     "version":0
+     "version":2
   }
 }

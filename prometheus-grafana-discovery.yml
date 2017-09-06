@@ -1,9 +1,27 @@
-####### PROMETHEUS #######
 apiVersion: v1
 kind: Template
 metadata:
   name: prometheus-grafana-discovery
 objects:
+
+####### ROLE AND SERVICE ACCOUNT #######
+- apiVersion: v1
+  kind: Role
+  metadata:
+    name: prom-discover-pods
+  rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs:
+    - get
+    - list
+    - watch
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: prometheus
+
+####### PROMETHEUS #######
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -18,8 +36,6 @@ objects:
       deploymentconfig: prometheus
     template:
       metadata:
-        annotations:
-          prometheus.io/scrape: 'false'
         labels:
           app: prometheus
           deploymentconfig: prometheus
@@ -64,6 +80,7 @@ objects:
         restartPolicy: Always
         securityContext: {}
         terminationGracePeriodSeconds: 30
+        serviceAccount: prometheus
 - apiVersion: v1
   kind: Service
   metadata:
@@ -211,6 +228,10 @@ objects:
           imagePullPolicy: Always
           name: discomon
           resources: {}
+        initContainers:
+          - name: wait-grafana
+            image: yauritux/busybox-curl
+            command: ['sh', '-c', 'until curl --connect-timeout 2 -u admin:admin http://grafana:3000/api/datasources; do echo waiting for Grafana; sleep 1; done;']
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         securityContext: {}

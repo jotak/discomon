@@ -1,5 +1,7 @@
 patterns:
  jvm:
-  - "jvm.*"
+  - "^jvm.*"
  prometheus:
-  - "prometheus.*"
+  - "^prometheus.*"
+ vertx:
+  - "^vertx.*"

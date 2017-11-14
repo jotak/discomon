@@ -20,7 +20,8 @@ const (
 	sleepDuration = 15 * time.Second
 	promUrl = "http://prometheus:9090"
 	grafUrl = "http://grafana:3000"
-	dashboardsDir = "/dashboards"
+	buildinDashboardsDir = "/dashboards"
+	configDir = "/etc/discomon"
 	// promUrl = "http://localhost:9090"
 	// grafUrl = "http://localhost:3000"
 	// dashboardsDir = "/work/discomon/dashboards"
@@ -42,7 +43,7 @@ func main() {
 }
 
 func initPatterns() {
-	yml, err := ioutil.ReadFile(dashboardsDir + "/config.yml")
+	yml, err := ioutil.ReadFile(configDir + "/config.yml")
   if err != nil {
 		fmt.Printf("Could not read patterns file: %v\n", err)
     panic(err)
@@ -76,7 +77,6 @@ func initGrafana() {
 		fmt.Printf("Could not initialize datasource in Grafana: %v\n", err)
 		panic(err)
 	}
-	// TODO: check for success, else panic
 	fmt.Printf("DB init response: %v\n", resp)
 }
 
@@ -116,8 +116,20 @@ func findPatterns(metrics []string) {
 	}
 }
 
+func loadDashboardFromFile(dashboard string) ([]byte, error) {
+	file, err := ioutil.ReadFile(fmt.Sprintf("%s/%s.json", configDir, dashboard))
+	if err == nil {
+		return file, nil
+	}
+	file, err = ioutil.ReadFile(fmt.Sprintf("%s/%s.json", buildinDashboardsDir, dashboard))
+	if err == nil {
+		return file, nil
+	}
+	return nil, err
+}
+
 func addGrafanaDashboard(dashboard string) {
-	file, err := ioutil.ReadFile(fmt.Sprintf("%s/%s.json", dashboardsDir, dashboard))
+	file, err := loadDashboardFromFile(dashboard)
 	if err != nil {
 		fmt.Printf("Could not load dashboard %s from file: %v\n", dashboard, err)
 		return

@@ -15,12 +15,12 @@ To prevent _Prometheus_ from discovering an application, its pod must be annotat
 4. Add to project `examples/wfapp.yml`
 5. Check Grafana: after a while you should see a JVM dashboard being added
 
-### Scenario with Jaeger
+### Scenario with OpenTracing
 
 1. Repeat steps 1 to 3 of OpenShift demo to setup discomon in OpenShift, or use the existing setup
-2. Add Jaeger into the project: `oc process -f https://raw.githubusercontent.com/jaegertracing/jaeger-openshift/master/all-in-one/jaeger-all-in-one-template.yml | oc create -f -`
-3. Run `oc create -f examples/jaegerapp.yml` (these demo microservices come from https://github.com/objectiser/opentracing-prometheus-example)
-4. Now when you hit a URL that involves Jaeger tracing (for instance: `http://ordermgr-test.127.0.0.1.nip.io/buy`), metrics will be created in Prometheus, and based on that discomon will create the Jaeger dashboard in Grafana after a few seconds.
+2. [Optionally] add Jaeger into the project: `oc process -f https://raw.githubusercontent.com/jaegertracing/jaeger-openshift/master/all-in-one/jaeger-all-in-one-template.yml | oc create -f -`
+3. Run `oc create -f examples/otapp.yml` (these demo microservices come from https://github.com/objectiser/opentracing-prometheus-example)
+4. Now when you hit a URL that involves OpenTracing (for instance: `http://ordermgr-test.127.0.0.1.nip.io/buy`), metrics will be created in Prometheus, and based on that discomon will create the OpenTracing dashboard in Grafana after a few seconds.
 
 ## Storing new dashboard templates
 

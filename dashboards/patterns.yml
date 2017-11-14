@@ -1,7 +1,0 @@
-patterns:
- jvm:
-  - "^jvm.*"
- prometheus:
-  - "^prometheus.*"
- vertx:
-  - "^vertx.*"

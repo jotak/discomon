@@ -16,10 +16,6 @@ type PromResponse struct {
 	Data []string	`json:"data"`
 }
 
-type RawPatterns struct {
-	Patterns map[string][]string `yaml:"patterns"`
-}
-
 const (
 	sleepDuration = 15 * time.Second
 	promUrl = "http://prometheus:9090"
@@ -46,25 +42,25 @@ func main() {
 }
 
 func initPatterns() {
-	yml, err := ioutil.ReadFile(dashboardsDir + "/patterns.yml")
+	yml, err := ioutil.ReadFile(dashboardsDir + "/config.yml")
   if err != nil {
 		fmt.Printf("Could not read patterns file: %v\n", err)
     panic(err)
 	}
-	var rawPatterns RawPatterns
-  err = yaml.Unmarshal(yml, &rawPatterns)
+	var config Config
+  err = yaml.Unmarshal(yml, &config)
   if err != nil {
-		fmt.Printf("Could not unmarshall patterns: %v\n", err)
+		fmt.Printf("Could not unmarshall config: %v\n", err)
     panic(err)
   }
-	fmt.Printf("patterns: %v\n", rawPatterns)
+	fmt.Printf("config: %v\n", config)
 
-	for dash, regs := range rawPatterns.Patterns {
-		compiled := make([]*regexp.Regexp, len(regs))
-		for i, r := range regs {
+	for _, descriptor := range config.Descriptors {
+		compiled := make([]*regexp.Regexp, len(descriptor.Patterns))
+		for i, r := range descriptor.Patterns {
 			compiled[i] = regexp.MustCompile(r)
 		}
-		patterns[dash] = compiled
+		patterns[descriptor.Name] = compiled
 	}
 }
 

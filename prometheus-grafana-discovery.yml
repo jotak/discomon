@@ -27,17 +27,17 @@ objects:
   metadata:
     generation: 1
     labels:
-      app: prometheus
+      app: discomon
     name: prometheus
   spec:
     replicas: 1
     selector:
-      app: prometheus
+      app: discomon
       deploymentconfig: prometheus
     template:
       metadata:
         labels:
-          app: prometheus
+          app: discomon
           deploymentconfig: prometheus
       spec:
         volumes:
@@ -85,7 +85,7 @@ objects:
   kind: Service
   metadata:
     labels:
-      app: prometheus
+      app: discomon
     name: prometheus
   spec:
     ports:
@@ -151,19 +151,19 @@ objects:
   metadata:
     generation: 1
     labels:
-      app: grafana
+      app: discomon
     name: grafana
   spec:
     replicas: 1
     selector:
-      app: grafana
+      app: discomon
       deploymentconfig: grafana
     template:
       metadata:
         annotations:
           prometheus.io/scrape: 'false'
         labels:
-          app: grafana
+          app: discomon
           deploymentconfig: grafana
       spec:
         containers:
@@ -182,7 +182,7 @@ objects:
   kind: Service
   metadata:
     labels:
-      app: grafana
+      app: discomon
     name: grafana
   spec:
     ports:

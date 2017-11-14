@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: ordermgr
 spec:
-  replicas: 3
+  replicas: 2
   template:
     metadata:
       labels:
@@ -33,28 +33,37 @@ spec:
           - name: OPENTRACING_METRICS_EXPORTER_HTTP_PATH
             value: "/metrics"
 ---
-kind: Service
 apiVersion: v1
+kind: Service
 metadata:
   name: ordermgr
   labels:
     app: ordermgr
 spec:
-  type: LoadBalancer
-  selector:
-    app: ordermgr
   ports:
-  - name: web
+  - name: 8080-tcp
     port: 8080
     protocol: TCP
-    targetPort: web
+    targetPort: 8080
+  selector:
+    app: ordermgr
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Route
+metadata:
+  name: ordermgr
+spec:
+  to:
+    kind: Service
+    name: ordermgr
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: accountmgr
 spec:
-  replicas: 3
+  replicas: 2
   template:
     metadata:
       labels:
@@ -82,18 +91,18 @@ spec:
           - name: OPENTRACING_METRICS_EXPORTER_HTTP_PATH
             value: "/metrics"
 ---
-kind: Service
 apiVersion: v1
+kind: Service
 metadata:
   name: accountmgr
   labels:
     app: accountmgr
 spec:
-  type: LoadBalancer
-  selector:
-    app: accountmgr
   ports:
-  - name: web
+  - name: 8080-tcp
     port: 8080
     protocol: TCP
-    targetPort: web
+    targetPort: 8080
+  selector:
+    app: accountmgr
+  type: ClusterIP

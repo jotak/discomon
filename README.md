@@ -30,3 +30,15 @@ To prevent _Prometheus_ from discovering an application, its pod must be annotat
 3. Update the json output to set dashboard id to null (that is the first "id" you should see in json)
 4. Save in `dashboards/` directory
 5. Rebuild docker image `./dockerbuild.sh` & push to dockerhub
+
+## Dev how-to
+
+For development, use the OpenShift template `prometheus-grafana-discovery-dev.yml` instead of the other one.
+
+Once imported in OpenShift, `discomon` won't run because it expects a build. From the command line run:
+
+```bash
+go build; oc start-build discomon --from-dir=. --follow
+```
+
+Repeat this command every time you want to update the deployment.

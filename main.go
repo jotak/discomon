@@ -22,9 +22,6 @@ const (
 	grafUrl = "http://grafana:3000"
 	buildinDashboardsDir = "/dashboards"
 	configDir = "/etc/discomon"
-	// promUrl = "http://localhost:9090"
-	// grafUrl = "http://localhost:3000"
-	// dashboardsDir = "/work/discomon/dashboards"
 )
 
 var (
@@ -107,7 +104,6 @@ func findPatterns(metrics []string) {
 					if reg.MatchString(metric) {
 						fmt.Printf("Found new dashboard to load: %s\n", dash)
 						addGrafanaDashboard(dash)
-						dashboards[dash] = true
 						break
 					}
 				}
@@ -140,6 +136,7 @@ func addGrafanaDashboard(dashboard string) {
 		return
 	}
 	fmt.Printf("Dashboard sent response: %s\n", resp)
+	dashboards[dashboard] = true
 }
 
 func postToGrafana(path string, data []byte) (string, error) {

@@ -63,7 +63,7 @@ objects:
               mountPath: /etc/configmap/
         containers:
         - image: >-
-            prom/prometheus@sha256:4f6d3a525f030e598016be765283c6455c3c830997a5c916b27a5d727be718e1
+            prom/prometheus:v2.0.0
           imagePullPolicy: Always
           name: prometheus
           ports:

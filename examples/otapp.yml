@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
       - name: ordermgr 
-        image: theute/kubeotprom-ordermgr:latest
+        image: jotak/kubeotprom-ordermgr:latest
         ports:
         - name: web
           containerPort: 8080
@@ -73,7 +73,7 @@ spec:
     spec:
       containers:
       - name: accountmgr 
-        image: theute/kubeotprom-accountmgr:latest
+        image: jotak/kubeotprom-accountmgr:latest
         ports:
         - name: web
           containerPort: 8080

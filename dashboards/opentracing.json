@@ -6,11 +6,11 @@
      "canStar":true,
      "slug":"opentracing",
      "expires":"0001-01-01T00:00:00Z",
-     "created":"2017-11-14T12:31:29Z",
-     "updated":"2017-11-14T12:39:11Z",
+     "created":"2017-11-27T09:06:01Z",
+     "updated":"2017-11-27T09:31:19Z",
      "updatedBy":"admin",
      "createdBy":"admin",
-     "version":1
+     "version":5
   },
   "dashboard":{
      "annotations":{
@@ -26,7 +26,7 @@
      "links":[
 
      ],
-     "refresh":"10s",
+     "refresh":"30s",
      "rows":[
         {
            "collapse":false,
@@ -70,9 +70,11 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"sum(increase(span_count[1m])) without (pod,instance,job,namespace,endpoint,transaction,error)",
+                       "expr":"sum(increase(span_count{app=~\"$app\"}[1m])) without (pod,instance,job,namespace,endpoint,transaction,error)",
                        "format":"time_series",
+                       "interval":"",
                        "intervalFactor":2,
+                       "legendFormat":"{{app}}: {{operation}} [span {{span_kind}}]",
                        "metric":"span_count",
                        "refId":"A",
                        "step":2
@@ -168,9 +170,10 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"avg(rate(span_sum[1m])) without (pod,instance,job,namespace,endpoint,transaction,error)",
+                       "expr":"avg(rate(span_sum{app=~\"$app\"}[1m])) without (pod,instance,job,namespace,endpoint,transaction,error)",
                        "format":"time_series",
                        "intervalFactor":2,
+                       "legendFormat":"{{app}}: {{operation}} [span {{span_kind}}]",
                        "refId":"A",
                        "step":2
                     }
@@ -265,9 +268,11 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"sum(increase(span_count{error=\"true\",span_kind=\"server\"}[1m])) without (pod,instance,job,namespace,endpoint,transaction,error,operation,span_kind) / sum(increase(span_count{span_kind=\"server\"}[1m])) without (pod,instance,job,namespace,endpoint,transaction,error,operation,span_kind)",
+                       "expr":"sum(increase(span_count{app=~\"$app\",error=\"true\",span_kind=\"server\"}[1m])) without (pod,instance,job,namespace,endpoint,transaction,error,operation,span_kind) / sum(increase(span_count{span_kind=\"server\"}[1m])) without (pod,instance,job,namespace,endpoint,transaction,error,operation,span_kind)",
                        "format":"time_series",
+                       "interval":"",
                        "intervalFactor":2,
+                       "legendFormat":"{{app}}",
                        "refId":"A",
                        "step":2
                     }
@@ -328,11 +333,39 @@
      ],
      "templating":{
         "list":[
+           {
+              "allValue":null,
+              "current":{
+                 "text":"All",
+                 "value":[
+                    "$__all"
+                 ]
+              },
+              "datasource":"prometheus",
+              "hide":0,
+              "includeAll":true,
+              "label":"App",
+              "multi":true,
+              "name":"app",
+              "options":[
 
+              ],
+              "query":"label_values(app)",
+              "refresh":2,
+              "regex":"",
+              "sort":0,
+              "tagValuesQuery":"",
+              "tags":[
+
+              ],
+              "tagsQuery":"",
+              "type":"query",
+              "useTags":false
+           }
         ]
      },
      "time":{
-        "from":"now-5m",
+        "from":"now-30m",
         "to":"now"
      },
      "timepicker":{
@@ -362,6 +395,6 @@
      },
      "timezone":"browser",
      "title":"OpenTracing",
-     "version":1
+     "version":5
   }
 }

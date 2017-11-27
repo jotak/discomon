@@ -10,10 +10,9 @@ To prevent _Prometheus_ from discovering an application, its pod must be annotat
 ## Demo (OpenShift)
 
 1. Create a new project and import `prometheus-grafana-discovery.yml`
-2. Add `prom-discover-pods` role to `prometheus` service account (you can do it either from the web console, section _Resources / Membership_, or via command line `oc adm policy add-role-to-user prom-discover-pods -z prometheus --role-namespace=your_namespace` - just replace _your_namespace_)
-3. Open Grafana: after a while you should see the Prometheus datasource and dashboard being added
-4. Add to project `examples/wfapp.yml`
-5. Check Grafana: after a while you should see a JVM dashboard being added
+2. Open Grafana: after a while you should see the Prometheus datasource and dashboard being added
+3. Add to project `examples/wfapp.yml`
+4. Check Grafana: after a while you should see a JVM dashboard being added
 
 ### Scenario with OpenTracing
 

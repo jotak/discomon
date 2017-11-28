@@ -2,6 +2,11 @@ apiVersion: v1
 kind: Template
 metadata:
   name: prometheus-grafana-discovery
+parameters:
+- description: The namespace where to deploy the services.
+  name: NAMESPACE
+  required: true
+
 objects:
 
 ####### ROLE AND SERVICE ACCOUNT #######
@@ -20,6 +25,17 @@ objects:
   kind: ServiceAccount
   metadata:
     name: prometheus
+- apiVersion: v1
+  kind: RoleBinding
+  metadata:
+    name: prom-discover-pods
+  roleRef:
+    name: prom-discover-pods
+    namespace: "${NAMESPACE}"
+  subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: "${NAMESPACE}"
 
 ####### PROMETHEUS #######
 - apiVersion: v1

@@ -6,11 +6,11 @@
      "canStar":true,
      "slug":"vertx",
      "expires":"0001-01-01T00:00:00Z",
-     "created":"2017-09-06T15:17:53Z",
-     "updated":"2017-09-06T15:42:45Z",
+     "created":"2017-11-28T09:39:02Z",
+     "updated":"2017-11-28T09:57:27Z",
      "updatedBy":"admin",
      "createdBy":"admin",
-     "version":15
+     "version":8
   },
   "dashboard":{
      "annotations":{
@@ -70,7 +70,7 @@
                        "expr":"vertx_event_loop_size{instance=~\"$instance\",app=~\"$app\"}",
                        "intervalFactor":5,
                        "legendFormat":"size [{{app}},{{instance}}]",
-                       "metric":"",
+                       "metric":"vertx_",
                        "refId":"A",
                        "step":25
                     }
@@ -127,7 +127,7 @@
                     "current":false,
                     "max":false,
                     "min":false,
-                    "show":true,
+                    "show":false,
                     "total":false,
                     "values":false
                  },
@@ -151,7 +151,7 @@
                     {
                        "expr":"vertx_eventbus_handlers{instance=~\"$instance\",app=~\"$app\"}",
                        "intervalFactor":5,
-                       "legendFormat":"handlers [{{app}},{{instance}}]",
+                       "legendFormat":"{{address}} [{{app}},{{instance}}]",
                        "metric":"",
                        "refId":"A",
                        "step":25
@@ -231,9 +231,9 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"vertx_eventbus_messages_received_total{instance=~\"$instance\",app=~\"$app\"}",
+                       "expr":"vertx_eventbus_received{instance=~\"$instance\",app=~\"$app\"}",
                        "intervalFactor":5,
-                       "legendFormat":"total [{{app}},{{instance}}]",
+                       "legendFormat":"{{address}} [{{app}},{{instance}}]",
                        "metric":"",
                        "refId":"A",
                        "step":25
@@ -313,10 +313,10 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"vertx_eventbus_messages_sent_total{instance=~\"$instance\",app=~\"$app\"}",
+                       "expr":"vertx_eventbus_sent{instance=~\"$instance\",app=~\"$app\"}",
                        "interval":"",
                        "intervalFactor":5,
-                       "legendFormat":"total [{{app}},{{instance}}]",
+                       "legendFormat":"{{address}} [{{app}},{{instance}}]",
                        "metric":"",
                        "refId":"A",
                        "step":25
@@ -408,10 +408,10 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"vertx_worker_pool_size{instance=~\"$instance\",app=~\"$app\"}",
+                       "expr":"vertx_pool_in_use{instance=~\"$instance\",app=~\"$app\"}",
                        "intervalFactor":5,
-                       "legendFormat":"size [{{app}},{{instance}}]",
-                       "metric":"",
+                       "legendFormat":"{{pool_type}}/{{pool_name}} [{{app}},{{instance}}]",
+                       "metric":"vertx_",
                        "refId":"A",
                        "step":25
                     }
@@ -421,7 +421,7 @@
                  ],
                  "timeFrom":null,
                  "timeShift":null,
-                 "title":"Worker pool size",
+                 "title":"Worker pool in use",
                  "tooltip":{
                     "shared":true,
                     "sort":0,
@@ -490,20 +490,12 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"vertx_pools_worker_vert_x_worker_thread_usage_count{instance=~\"$instance\",app=~\"$app\"}",
+                       "expr":"rate(vertx_pool_usage_sum{instance=~\"$instance\",app=~\"$app\"}[5m]) / rate(vertx_pool_usage_count{instance=~\"$instance\",app=~\"$app\"}[5m])",
                        "interval":"",
                        "intervalFactor":5,
-                       "legendFormat":"usage count [{{app}},{{instance}}]",
+                       "legendFormat":"{{pool_type}}/{{pool_name}} [{{app}},{{instance}}]",
                        "metric":"",
                        "refId":"A",
-                       "step":25
-                    },
-                    {
-                       "expr":"vertx_pools_worker_vert_x_worker_thread_in_use{instance=~\"$instance\",app=~\"$app\"}",
-                       "intervalFactor":5,
-                       "legendFormat":"in use [{{app}},{{instance}}]",
-                       "metric":"",
-                       "refId":"B",
                        "step":25
                     }
                  ],
@@ -512,7 +504,7 @@
                  ],
                  "timeFrom":null,
                  "timeShift":null,
-                 "title":"Worker thread usage count",
+                 "title":"Worker thread usage",
                  "tooltip":{
                     "shared":true,
                     "sort":0,
@@ -581,11 +573,21 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"vertx_pools_worker_vert_x_worker_thread_usage{instance=~\"$instance\",app=~\"$app\"}",
+                       "expr":"rate(vertx_http_server_bytes_received_sum{instance=~\"$instance\",app=~\"$app\"}[5m]) / rate(vertx_http_server_bytes_received_count{instance=~\"$instance\",app=~\"$app\"}[5m])",
+                       "interval":"",
                        "intervalFactor":5,
-                       "legendFormat":"{{quantile}} [{{app}},{{instance}}]",
+                       "legendFormat":"Received {{local}} [{{app}},{{instance}}]",
                        "metric":"",
                        "refId":"A",
+                       "step":25
+                    },
+                    {
+                       "expr":"rate(vertx_http_server_bytes_sent_sum{instance=~\"$instance\",app=~\"$app\"}[5m]) / rate(vertx_http_server_bytes_sent_count{instance=~\"$instance\",app=~\"$app\"}[5m])",
+                       "interval":"",
+                       "intervalFactor":5,
+                       "legendFormat":"Sent {{local}} [{{app}},{{instance}}]",
+                       "metric":"",
+                       "refId":"B",
                        "step":25
                     }
                  ],
@@ -594,7 +596,7 @@
                  ],
                  "timeFrom":null,
                  "timeShift":null,
-                 "title":"Worker thread usage quantiles",
+                 "title":"HTTP server bytes",
                  "tooltip":{
                     "shared":true,
                     "sort":0,
@@ -611,7 +613,7 @@
                  },
                  "yaxes":[
                     {
-                       "format":"short",
+                       "format":"decbytes",
                        "label":null,
                        "logBase":1,
                        "max":null,
@@ -663,11 +665,11 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"vertx_pools_worker_vert_x_internal_blocking_in_use{instance=~\"$instance\",app=~\"$app\"}",
+                       "expr":"rate(vertx_http_server_error_count{instance=~\"$instance\",app=~\"$app\"}[1m])",
                        "interval":"",
                        "intervalFactor":5,
-                       "legendFormat":"count [{{app}},{{instance}}]",
-                       "metric":"",
+                       "legendFormat":"{{local}} 1m [{{app}},{{instance}}]",
+                       "metric":"vertx_http_server_error_count",
                        "refId":"A",
                        "step":25
                     }
@@ -677,7 +679,7 @@
                  ],
                  "timeFrom":null,
                  "timeShift":null,
-                 "title":"Worker internal blocking in use",
+                 "title":"HTTP server error rate",
                  "tooltip":{
                     "shared":true,
                     "sort":0,
@@ -758,11 +760,11 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"vertx_timers{instance=~\"$instance\",app=~\"$app\"}",
+                       "expr":"vertx_http_server_requests{instance=~\"$instance\",app=~\"$app\"}",
                        "interval":"",
                        "intervalFactor":5,
-                       "legendFormat":"count [{{app}},{{instance}}]",
-                       "metric":"",
+                       "legendFormat":"{{local}} [{{app}},{{instance}}]",
+                       "metric":"vertx_http_server_requests",
                        "refId":"A",
                        "step":10
                     }
@@ -772,7 +774,7 @@
                  ],
                  "timeFrom":null,
                  "timeShift":null,
-                 "title":"Timers",
+                 "title":"Server requests",
                  "tooltip":{
                     "shared":true,
                     "sort":0,
@@ -841,10 +843,10 @@
                  "steppedLine":false,
                  "targets":[
                     {
-                       "expr":"vertx_verticles{instance=~\"$instance\",app=~\"$app\"}",
+                       "expr":"vertx_verticle{instance=~\"$instance\",app=~\"$app\"}",
                        "interval":"",
                        "intervalFactor":5,
-                       "legendFormat":"count [{{app}},{{instance}}]",
+                       "legendFormat":"{{name}} [{{app}},{{instance}}]",
                        "metric":"",
                        "refId":"A",
                        "step":10
@@ -908,10 +910,10 @@
            {
               "allValue":null,
               "current":{
-                "text":"All",
-                "value":[
-                   "$__all"
-                ]
+                 "text":"All",
+                 "value":[
+                    "$__all"
+                 ]
               },
               "datasource":"prometheus",
               "hide":0,
@@ -996,6 +998,6 @@
      },
      "timezone":"browser",
      "title":"VertX",
-     "version":15
+     "version":8
   }
 }

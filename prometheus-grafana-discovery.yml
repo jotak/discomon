@@ -294,3 +294,6 @@ objects:
         - patterns: ["^Tomcat.*"]
           name: "tomcat"
           category: "server"
+        - patterns: ["^pg_.*"]
+          name: "postgres"
+          category: "database"

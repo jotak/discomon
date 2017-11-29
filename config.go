@@ -5,7 +5,7 @@ type Config struct {
 }
 
 type Descriptor struct {
-	Patterns []string `yaml:"patterns"`
+	Pattern string `yaml:"pattern"`
 	Name string `yaml:"name"`
 	Category string `yaml:"category"`
 	Child Child `yaml:"child"`

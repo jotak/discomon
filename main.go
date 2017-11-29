@@ -1,7 +1,9 @@
 package main
 
-import ("bytes"
+import (
+	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -10,12 +12,16 @@ import ("bytes"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
-	"encoding/json"
 )
 
-type PromResponse struct {
+type PromLabelResponse struct {
 	status string
 	Data []string	`json:"data"`
+}
+
+type PromMetricResponse struct {
+	status string
+	Data []map[string]string	`json:"data"`
 }
 
 const (
@@ -26,8 +32,10 @@ const (
 )
 
 var (
+	descriptors []Descriptor
+	compiledPatterns = make(map[string]*regexp.Regexp)
 	dashboards = make(map[string]bool)
-	patterns = make(map[string][]*regexp.Regexp)
+	grafanaExternalUrl = "http://" + os.Getenv("GRAFANA_SERVICE_HOST") + ":" + os.Getenv("GRAFANA_SERVICE_PORT")
 )
 
 func main() {
@@ -41,11 +49,12 @@ func main() {
 			scanPeriod = time.Duration(i) * time.Second
 		}
 	}
+	go initServer()
 	initPatterns()
 	initGrafana()
-	fmt.Printf("Starting loop. Scan period set to %d seconds.\n", scanPeriod / time.Second)
+	log.Printf("Starting loop. Scan period set to %d seconds.\n", scanPeriod / time.Second)
 	for {
-		fetchMetrics()
+		scanInventory()
 		time.Sleep(scanPeriod)
 	}
 }
@@ -53,23 +62,18 @@ func main() {
 func initPatterns() {
 	yml, err := ioutil.ReadFile(configDir + "/config.yml")
   if err != nil {
-		fmt.Printf("Could not read patterns file: %v\n", err)
+		log.Printf("Could not read patterns file: %v\n", err)
     panic(err)
 	}
 	var config Config
   err = yaml.Unmarshal(yml, &config)
   if err != nil {
-		fmt.Printf("Could not unmarshall config: %v\n", err)
+		log.Printf("Could not unmarshall config: %v\n", err)
     panic(err)
-  }
-	fmt.Printf("config: %v\n", config)
-
-	for _, descriptor := range config.Descriptors {
-		compiled := make([]*regexp.Regexp, len(descriptor.Patterns))
-		for i, r := range descriptor.Patterns {
-			compiled[i] = regexp.MustCompile(r)
-		}
-		patterns[descriptor.Name] = compiled
+	}
+	descriptors = config.Descriptors
+	for _, descriptor := range descriptors {
+		compiledPatterns[descriptor.Name] = regexp.MustCompile(descriptor.Pattern)
 	}
 }
 
@@ -82,45 +86,30 @@ func initGrafana() {
 	}`, promUrl))
 	resp, err := postToGrafana("/api/datasources", datasource)
 	if err != nil {
-		fmt.Printf("Could not initialize datasource in Grafana: %v\n", err)
-		panic(err)
+		log.Panicf("Could not initialize datasource in Grafana: %v\n", err)
 	}
-	fmt.Printf("DB init response: %v\n", resp)
+	log.Printf("DB init response: %v\n", resp)
 }
 
-func fetchMetrics() {
-	fmt.Println("Fetching metric names")
-	resp, err := http.Get(promUrl + "/api/v1/label/__name__/values")
-	if err != nil {
-		fmt.Printf("Could not fetch metric names: %v\n", err)
+func addGrafanaDashboard(name string) {
+	_, alreadySet := dashboards[name]
+	if alreadySet {
 		return
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	logch(fmt.Sprintf("Found new dashboard to load: %s\n", name))
+	file, err := loadDashboardFromFile(name)
 	if err != nil {
-		fmt.Printf("Reading body failed: %v\n", err)
+		log.Printf("Could not load dashboard %s from file: %v\n", name, err)
 		return
 	}
-	jsonResp := PromResponse{}
-	json.Unmarshal(body, &jsonResp)
-	findPatterns(jsonResp.Data)
-}
-
-func findPatterns(metrics []string) {
-	for _, metric := range metrics {
-		for dash, regs := range patterns {
-			_, alreadySet := dashboards[dash]
-			if !alreadySet {
-				for _, reg := range regs {
-					if reg.MatchString(metric) {
-						fmt.Printf("Found new dashboard to load: %s\n", dash)
-						addGrafanaDashboard(dash)
-						break
-					}
-				}
-			}
-		}
+	resp, err := postToGrafana("/api/dashboards/db", file)
+	if err != nil {
+		log.Printf("Could not send dashboard %s to Grafana: %v\n", name, err)
+		return
 	}
+	log.Printf("Dashboard sent response: %s\n", resp)
+	dashboards[name] = true
+	dashChan <- 1
 }
 
 func loadDashboardFromFile(dashboard string) ([]byte, error) {
@@ -133,21 +122,6 @@ func loadDashboardFromFile(dashboard string) ([]byte, error) {
 		return file, nil
 	}
 	return nil, err
-}
-
-func addGrafanaDashboard(dashboard string) {
-	file, err := loadDashboardFromFile(dashboard)
-	if err != nil {
-		fmt.Printf("Could not load dashboard %s from file: %v\n", dashboard, err)
-		return
-	}
-	resp, err := postToGrafana("/api/dashboards/db", file)
-	if err != nil {
-		fmt.Printf("Could not send dashboard %s to Grafana: %v\n", dashboard, err)
-		return
-	}
-	fmt.Printf("Dashboard sent response: %s\n", resp)
-	dashboards[dashboard] = true
 }
 
 func postToGrafana(path string, data []byte) (string, error) {

@@ -6,6 +6,10 @@ parameters:
 - description: The namespace where to deploy the services.
   name: NAMESPACE
   required: true
+- description: The discovery scan period, in seconds.
+  name: SCAN_PERIOD
+  value: 15
+  required: true
 
 objects:
 
@@ -278,6 +282,9 @@ objects:
           volumeMounts:
           - name: discomon-config-volume
             mountPath: /etc/discomon/
+          env:
+          - name: SCAN_PERIOD
+            value: "${SCAN_PERIOD}"
         initContainers:
           - name: wait-grafana
             image: yauritux/busybox-curl

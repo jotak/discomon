@@ -2,7 +2,9 @@ package main
 
 import ("bytes"
 	"fmt"
+	"os"
 	"regexp"
+	"strconv"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -17,7 +19,6 @@ type PromResponse struct {
 }
 
 const (
-	sleepDuration = 15 * time.Second
 	promUrl = "http://prometheus:9090"
 	grafUrl = "http://grafana:3000"
 	buildinDashboardsDir = "/dashboards"
@@ -30,12 +31,22 @@ var (
 )
 
 func main() {
+	scanPeriod := 15 * time.Second
+	strScanPeriod := os.Getenv("SCAN_PERIOD")
+	if strScanPeriod != "" {
+		i, err := strconv.Atoi(strScanPeriod)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			scanPeriod = time.Duration(i) * time.Second
+		}
+	}
 	initPatterns()
 	initGrafana()
-	fmt.Println("Starting loop")
+	fmt.Printf("Starting loop. Scan period set to %d seconds.\n", scanPeriod / time.Second)
 	for {
 		fetchMetrics()
-		time.Sleep(sleepDuration)
+		time.Sleep(scanPeriod)
 	}
 }
 

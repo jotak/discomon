@@ -14,16 +14,6 @@ import (
 	"net/http"
 )
 
-type PromLabelResponse struct {
-	status string
-	Data []string	`json:"data"`
-}
-
-type PromMetricResponse struct {
-	status string
-	Data []map[string]string	`json:"data"`
-}
-
 const (
 	promUrl = "http://prometheus:9090"
 	grafUrl = "http://grafana:3000"
@@ -49,9 +39,9 @@ func main() {
 			scanPeriod = time.Duration(i) * time.Second
 		}
 	}
-	go initServer()
 	initPatterns()
 	initGrafana()
+	go initServer()
 	log.Printf("Starting loop. Scan period set to %d seconds.\n", scanPeriod / time.Second)
 	for {
 		scanInventory()
@@ -62,14 +52,12 @@ func main() {
 func initPatterns() {
 	yml, err := ioutil.ReadFile(configDir + "/config.yml")
   if err != nil {
-		log.Printf("Could not read patterns file: %v\n", err)
-    panic(err)
+		log.Panicf("Could not read patterns file: %v\n", err)
 	}
 	var config Config
   err = yaml.Unmarshal(yml, &config)
   if err != nil {
-		log.Printf("Could not unmarshall config: %v\n", err)
-    panic(err)
+		log.Panicf("Could not unmarshall config: %v\n", err)
 	}
 	descriptors = config.Descriptors
 	for _, descriptor := range descriptors {
@@ -109,7 +97,7 @@ func addGrafanaDashboard(name string) {
 	}
 	log.Printf("Dashboard sent response: %s\n", resp)
 	dashboards[name] = true
-	dashChan <- 1
+	dashch()
 }
 
 func loadDashboardFromFile(dashboard string) ([]byte, error) {

@@ -4,17 +4,35 @@
     <title>Discomon</title>
     <meta charset="utf-8">
     <style>
+    body {
+      font-family: "Open Sans",Helvetica,Arial,sans-serif;
+      font-size: 14px;
+      color: #363636;
+    }
+
+    a {
+      color: #0088ce;
+      text-decoration: none;
+    }
+    a:focus, a:hover {
+      color: #00659c;
+      text-decoration: underline;
+    }
     
     .node {
       cursor: pointer;
     }
     
+    .root {
+      display: none;
+    }
+
     .node circle {
       fill: #fff;
       stroke: steelblue;
       stroke-width: 1.5px;
     }
-    
+
     .node text {
       font: 10px sans-serif;
     }
@@ -27,11 +45,13 @@
     </style>
   </head>
   <body>
-    <pre id="log"></pre>
-    <div id="dashboards"></div>
+    <div id="dashboards">Currently no dashboard in use</div>
+    <div id="lastscan"></div>
+    <div id="log"></div>
     <script src="//d3js.org/d3.v3.min.js"></script>
     <script type="text/javascript">
 
+    var statuses = ["down", "unknown", "up", "expired", "unset"];
     var margin = {top: 20, right: 120, bottom: 20, left: 120},
         width = 960 - margin.right - margin.left,
         height = 800 - margin.top - margin.bottom;
@@ -41,10 +61,10 @@
         root;
 
     var tree = d3.layout.tree()
-        .size([height, width]);
+        .size([width, height]);
 
     var diagonal = d3.svg.diagonal()
-        .projection(function(d) { return [d.y, d.x]; });
+        .projection(function(d) { return [d.x, d.y]; });
 
     var svg = d3.select("body").append("svg")
         .attr("width", width + margin.right + margin.left)
@@ -69,13 +89,14 @@
 
       // Enter any new nodes at the parent's previous position.
       var nodeEnter = node.enter().append("g")
-          .attr("class", "node")
-          .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
+          .attr("class", function(d) {
+            return d.name == '_root_' ? "root" : "node"
+          })
+          .attr("transform", function(d) { return "translate(" + source.x0 + "," + source.y0 + ")"; })
           .on("click", click);
 
       nodeEnter.append("circle")
-          .attr("r", 1e-6)
-          .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+          .attr("r", 1e-6);
 
       nodeEnter.append("text")
           .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
@@ -87,11 +108,19 @@
       // Transition nodes to their new position.
       var nodeUpdate = node.transition()
           .duration(duration)
-          .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+          .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
 
       nodeUpdate.select("circle")
-          .attr("r", 4.5)
-          .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+          .attr("r", 6)
+          .style("fill", function(d) {
+            if (d.status == 2) {
+              return "LawnGreen";
+            } else if (d.status == 0) {
+              return "FireBrick";
+            } else {
+              return "DarkGrey"
+            }
+          });
 
       nodeUpdate.select("text")
           .style("fill-opacity", 1);
@@ -99,7 +128,7 @@
       // Transition exiting nodes to the parent's new position.
       var nodeExit = node.exit().transition()
           .duration(duration)
-          .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+          .attr("transform", function(d) { return "translate(" + source.x + "," + source.y + ")"; })
           .remove();
 
       nodeExit.select("circle")
@@ -114,7 +143,9 @@
 
       // Enter any new links at the parent's previous position.
       link.enter().insert("path", "g")
-          .attr("class", "link")
+          .attr("class", function(d) {
+            return d.source.name == "_root_" ? "root" : "link";
+          })
           .attr("d", function(d) {
             var o = {x: source.x0, y: source.y0};
             return diagonal({source: o, target: o});
@@ -145,7 +176,6 @@
     function click(d) {
       if (d.url) {
         window.open(d.url,'_blank');
-//        window.location = url;
       } else if (d.children) {
         d._children = d.children;
         d.children = null;
@@ -156,8 +186,25 @@
       update(d);
     }
 
+    // function checkCollapsed(d) {
+    //   // Status expired are collapsed
+    //   if (d.status == 3 && d.children) {
+    //     // Collapse
+    //     d._children = d.children;
+    //     d.children = null;
+    //   } else if (d.status != 3 && d._children) {
+    //     // Uncollapse
+    //     d.children = d._children;
+    //     d._children = null;
+    //   }
+    //   if (d.children) {
+    //     d.children.forEach(checkCollapsed);
+    //   }
+    // }
+
     (function() {
             var domLog = document.getElementById("log");
+            var domLastScan = document.getElementById("lastscan");
             var domDash = document.getElementById("dashboards");
             var conn = new WebSocket("ws://{{.Host}}/ws");
             conn.onclose = function(evt) {
@@ -168,15 +215,21 @@
               if (data.hasOwnProperty('Log')) {
                 domLog.textContent = data.Log;
               }
+              if (data.hasOwnProperty('LastScan')) {
+                domLastScan.textContent = "Last scan: " + new Date(data.LastScan)
+              }
               if (data.hasOwnProperty('Dashboards')) {
-                domDash.innerHTML = data.Dashboards.map(function(link) {
-                  return "<a href='" + link.Link + "'>" + link.Name + "</a>"
-                }).join("<br/>");
+                domDash.innerHTML = "Grafana dashboards in use: " +
+                  data.Dashboards.map(function(link) {
+                    return "<a href='" + link.Link + "'>" + link.Name + "</a>"
+                  }).join(", ");
               }
               if (data.hasOwnProperty('Inventory')) {
                 root = data.Inventory;
                 root.x0 = height / 2;
                 root.y0 = 0;
+                // // Check collapsed
+                // checkCollapsed(root)
                 update(root);
               }
             }

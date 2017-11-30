@@ -29,6 +29,7 @@ var (
 		WriteBufferSize: 1024,
 	}
 	logChan = make(chan string)
+	lastScanChan = make(chan time.Time)
 	dashChan = make(chan int)
 	invChan = make(chan int)
 )
@@ -36,6 +37,8 @@ var (
 func initServer() {
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", serveWs)
+	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
+	log.Println("Server listening on port 8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}
@@ -94,6 +97,7 @@ func writer(ws *websocket.Conn) {
 		pingTicker.Stop()
 		ws.Close()
 	}()
+	log.Println("[init] Sending data over WS")
 	sendDashboardsLinks(ws)
 	sendInventory(ws)
 	for {
@@ -102,17 +106,25 @@ func writer(ws *websocket.Conn) {
 			ws.SetWriteDeadline(time.Now().Add(writeWait))
 			var obj = struct {
 				Log string
-			}{
-				msg,
+			}{msg,}
+			if err := ws.WriteJSON(obj); err != nil {
+				return
 			}
+		case timestamp := <-lastScanChan:
+			ws.SetWriteDeadline(time.Now().Add(writeWait))
+			var obj = struct {
+				LastScan time.Time
+			}{timestamp,}
 			if err := ws.WriteJSON(obj); err != nil {
 				return
 			}
 		case <-dashChan:
+			log.Println("Sending dashboards over WS")
 			if err := sendDashboardsLinks(ws); err != nil {
 				return
 			}
 		case <-invChan:
+			log.Println("Sending inventory over WS")
 			if err := sendInventory(ws); err != nil {
 				return
 			}
@@ -163,6 +175,13 @@ func dashch() {
 func invch() {
 	select {
 	case invChan <- 1:
+	default:
+	}
+}
+
+func scanch() {
+	select {
+	case lastScanChan <- time.Now():
 	default:
 	}
 }

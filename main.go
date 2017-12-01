@@ -84,7 +84,7 @@ func addGrafanaDashboard(name string) {
 	if alreadySet {
 		return
 	}
-	logch(fmt.Sprintf("Found new dashboard to load: %s\n", name))
+	master.eventChan <- LogEvent(fmt.Sprintf("Found new dashboard to load: %s\n", name))
 	file, err := loadDashboardFromFile(name)
 	if err != nil {
 		log.Printf("Could not load dashboard %s from file: %v\n", name, err)
@@ -97,7 +97,7 @@ func addGrafanaDashboard(name string) {
 	}
 	log.Printf("Dashboard sent response: %s\n", resp)
 	dashboards[name] = true
-	dashch()
+	master.eventChan <- DashChangedEvent()
 }
 
 func loadDashboardFromFile(dashboard string) ([]byte, error) {

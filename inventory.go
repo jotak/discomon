@@ -85,10 +85,10 @@ func scanInventory() {
 	propagateStatus(&inventory)
 	newHash := computeHash(&inventory)
 	if !bytes.Equal(invHash, newHash) {
-		invch()
+		master.eventChan <- InvChangedEvent()
 		invHash = newHash
 	}
-	scanch()
+	master.eventChan <- ScanEvent()
 }
 
 func getMatchingMetric(metrics []interface{}, name string) string {
@@ -139,27 +139,27 @@ func promGenericQuery(relativePath string) interface{} {
 	resp, err := http.Get(promUrl + relativePath)
 	if err != nil {
 		log.Printf("Could not fetch Prometheus: %v\n", err)
-		logch("Could not fetch Prometheus (check logs)")
+		master.eventChan <- LogEvent("Could not fetch Prometheus (check logs)")
 		return nil
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("Reading body failed: %v\n", err)
-		logch("Reading body failed (check logs)")
+		master.eventChan <- LogEvent("Reading body failed (check logs)")
 		return nil
 	}
 	var f interface{}
 	err = json.Unmarshal(body, &f)
 	if err != nil {
 		log.Printf("Unmarshal json failed: %v\n", err)
-		logch("Unmarshal json failed (check logs)")
+		master.eventChan <- LogEvent("Unmarshal json failed (check logs)")
 		return nil
 	}
 	status := f.(map[string]interface{})["status"]
 	if status != "success" {
 		log.Printf("Prometheus call didn't succeed: %v", f)
-		logch("Prometheus call didn't succeed (check logs)")
+		master.eventChan <- LogEvent("Prometheus call didn't succeed (check logs)")
 		return nil
 	}
 	return f.(map[string]interface{})["data"]

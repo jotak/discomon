@@ -19,6 +19,7 @@ type Resource struct {
 	Children []*Resource `json:"children"`
 	Url string `json:"url"`
 	Status Status `json:"status"`
+	StatusContext string `json:"statusContext"`
 }
 
 type Status int
@@ -32,7 +33,7 @@ const (
 )
 
 var (
-	inventory = Resource{"_root_", []*Resource{}, "", UNSET}
+	inventory = Resource{"_root_", []*Resource{}, "", UNSET, ""}
 	invHash = computeHash(&inventory)
 )
 
@@ -52,7 +53,12 @@ func scanInventory() {
 				labels := _labels.(map[string]interface{})
 				instanceName := labels["instance"].(string)
 				podName := labels["kubernetes_pod_name"].(string)
-				status := getInstanceStatus(instanceName, podName)
+				statusContext := "Via MicroProfile health"
+				status := getInstanceMicroProfileStatus(instanceName)
+				if status == UNKNOWN {
+					statusContext = "Via Prometheus UP"
+					status = getInstanceScrapeStatus(instanceName, podName)
+				}
 				if status == EXPIRED {
 					continue;
 				}
@@ -63,18 +69,18 @@ func scanInventory() {
 					desc.Name,
 					instanceName,
 					labels["app"]);
-				resource := Resource{desc.Name, []*Resource{}, dashUrl, status}
+				resource := Resource{desc.Name, []*Resource{}, dashUrl, status, statusContext}
 				if instanceExists {
 					instance.Children = append(instance.Children, &resource)
 				} else {
-					instance = &Resource{instanceIP, []*Resource{&resource}, "", UNSET}
+					instance = &Resource{instanceIP, []*Resource{&resource}, "", UNSET, ""}
 					instances[instanceIP] = instance
 					appName := labels["app"].(string)
 					app, appExists := apps[appName]
 					if appExists {
 						app.Children = append(app.Children, instance)
 					} else {
-						app = &Resource{appName, []*Resource{instance}, "", UNSET}
+						app = &Resource{appName, []*Resource{instance}, "", UNSET, ""}
 						apps[appName] = app
 						inventory.Children = append(inventory.Children, app)
 					}
@@ -118,7 +124,7 @@ func fetchMetricDef(metric string) []interface{} {
 	return json_.([]interface{})
 }
 
-func getInstanceStatus(instance, pod string) Status {
+func getInstanceScrapeStatus(instance, pod string) Status {
 	json_ := promGenericQuery("/api/v1/query?query=up{instance=\"" + instance + "\",kubernetes_pod_name=\"" + pod + "\"}")
 	if json_ == nil {
 		return UNKNOWN
@@ -133,6 +139,25 @@ func getInstanceStatus(instance, pod string) Status {
 		return UP
 	}
 	return DOWN
+}
+
+func getInstanceMicroProfileStatus(instance string) Status {
+	// How about https?
+	resp, err := http.Get("http://" + instance + "/health")
+	if err != nil {
+		log.Printf("Could not fetch MicroProfile healthcheck for %s: %v\n", instance, err)
+		master.eventChan <- LogEvent("Could not fetch MicroProfile healthcheck (check logs)")
+		return UNKNOWN
+	}
+	defer resp.Body.Close()
+	// MP Health check spec: https://github.com/eclipse/microprofile-health/blob/master/spec/src/main/asciidoc/protocol-wireformat.adoc#response-codes-and-status-mappings
+	if resp.StatusCode == 200 {
+		return UP
+	}
+	if resp.StatusCode == 503 {
+		return DOWN
+	}
+	return UNKNOWN
 }
 
 func promGenericQuery(relativePath string) interface{} {

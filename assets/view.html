@@ -96,7 +96,9 @@
           .on("click", click);
 
       nodeEnter.append("circle")
-          .attr("r", 1e-6);
+          .attr("r", 1e-6)
+          .append("svg:title")
+          .text(function(d) { return d.statusContext; });;
 
       nodeEnter.append("text")
           .attr("x", function(d) { return d.children || d._children ? -10 : 10; })

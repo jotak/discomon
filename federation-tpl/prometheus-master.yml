@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: prometheus-master
+
+objects:    
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    generation: 1
+    labels:
+      app: discomon
+    name: prometheus-master
+  spec:
+    replicas: 1
+    selector:
+      app: discomon
+      deploymentconfig: prometheus-master
+    template:
+      metadata:
+        labels:
+          app: discomon
+          deploymentconfig: prometheus-master
+      spec:
+        volumes:
+          - name: prometheus-master-volume-1
+            emptyDir: {}
+          - name: prometheus-master-config-volume
+            configMap:
+              name: prometheus-master-config
+              defaultMode: 420
+        containers:
+        - image: >-
+            prom/prometheus:v2.0.0
+          imagePullPolicy: Always
+          name: prometheus-master
+          ports:
+          - containerPort: 9090
+            protocol: TCP
+          resources: {}
+          volumeMounts:
+          - name: prometheus-master-volume-1
+            mountPath: /prometheus
+          - name: prometheus-master-config-volume
+            mountPath: /etc/prometheus/
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: discomon
+    name: prometheus
+  spec:
+    ports:
+    - name: 9090-tcp
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
+    selector:
+      deploymentconfig: prometheus-master
+    type: ClusterIP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: prometheus
+  spec:
+    to:
+      kind: Service
+      name: prometheus
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: prometheus-master-config
+  data:
+    prometheus.yml: |
+      global:
+        scrape_interval: 10s
+        scrape_timeout: 10s
+      scrape_configs:
+      - job_name: dc_prometheus
+        honor_labels: true
+        metrics_path: /federate
+        params:
+          match[]:
+          - '{job="k8s-pods"}'
+        static_configs:
+          - targets:
+            - prometheus-prometheis:9090
+            - prometheus-other:9090

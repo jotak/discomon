@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: sa-role
+parameters:
+- description: The namespace where to deploy the services.
+  name: NAMESPACE
+  required: true
+
+objects:
+- apiVersion: v1
+  kind: Role
+  metadata:
+    name: prom-discover-pods
+  rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs:
+    - get
+    - list
+    - watch
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: prometheus
+- apiVersion: v1
+  kind: RoleBinding
+  metadata:
+    name: prom-discover-pods
+  roleRef:
+    name: prom-discover-pods
+    namespace: "${NAMESPACE}"
+  subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: "${NAMESPACE}"

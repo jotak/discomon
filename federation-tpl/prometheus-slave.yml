@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: prometheus-slave
+parameters:
+- description: Prometheus slave name.
+  name: SLAVE
+  required: true
+- description: The namespace where to deploy the services.
+  name: NAMESPACE
+  required: true
+
+objects:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    generation: 1
+    labels:
+      app: discomon
+    name: prometheus-${SLAVE}
+  spec:
+    replicas: 1
+    selector:
+      app: discomon
+      deploymentconfig: prometheus-${SLAVE}
+    template:
+      metadata:
+        annotations:
+          prometheus.io/slave: prometheis
+        labels:
+          app: discomon
+          deploymentconfig: prometheus-${SLAVE}
+      spec:
+        volumes:
+          - name: prometheus-${SLAVE}-volume-1
+            emptyDir: {}
+          - name: prometheus-${SLAVE}-config-volume
+            configMap:
+              name: prometheus-${SLAVE}-config
+              defaultMode: 420
+        containers:
+        - image: >-
+            prom/prometheus:v2.0.0
+          imagePullPolicy: Always
+          name: prometheus-${SLAVE}
+          ports:
+          - containerPort: 9090
+            protocol: TCP
+          resources: {}
+          volumeMounts:
+          - name: prometheus-${SLAVE}-volume-1
+            mountPath: /prometheus
+          - name: prometheus-${SLAVE}-config-volume
+            mountPath: /etc/prometheus/
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        serviceAccount: prometheus
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: discomon
+    name: prometheus-${SLAVE}
+  spec:
+    ports:
+    - name: 9090-tcp
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
+    selector:
+      deploymentconfig: prometheus-${SLAVE}
+    type: ClusterIP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: prometheus-${SLAVE}
+  spec:
+    to:
+      kind: Service
+      name: prometheus-${SLAVE}
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: prometheus-${SLAVE}-config
+  data:
+    prometheus.yml: |
+      global:
+        scrape_interval: 10s
+        scrape_timeout: 10s
+      scrape_configs:
+        - job_name: k8s-pods
+          tls_config:
+            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - ${NAMESPACE}
+          relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: drop
+            regex: false
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_slave]
+            action: keep
+            regex: ${SLAVE}
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name

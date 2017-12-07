@@ -1,0 +1,172 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: grafana-discomon
+parameters:
+- description: The discovery scan period, in seconds.
+  name: SCAN_PERIOD
+  value: "15"
+  required: true
+
+objects:
+####### GRAFANA #######
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    generation: 1
+    labels:
+      app: discomon
+    name: grafana
+  spec:
+    replicas: 1
+    selector:
+      app: discomon
+      deploymentconfig: grafana
+    template:
+      metadata:
+        annotations:
+          prometheus.io/scrape: 'false'
+        labels:
+          app: discomon
+          deploymentconfig: grafana
+      spec:
+        containers:
+        - image: hawkular/hawkular-grafana-datasource:1.0.10
+          imagePullPolicy: Always
+          name: grafana
+          ports:
+          - containerPort: 3000
+            protocol: TCP
+          resources: {}
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: discomon
+    name: grafana
+  spec:
+    ports:
+    - name: 3000-tcp
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+    selector:
+      deploymentconfig: grafana
+    type: ClusterIP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: grafana
+  spec:
+    to:
+      kind: Service
+      name: grafana
+
+####### DISCOMON #######
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    generation: 1
+    labels:
+      app: discomon
+    name: discomon
+  spec:
+    replicas: 1
+    selector:
+      app: discomon
+      deploymentconfig: discomon
+    template:
+      metadata:
+        annotations:
+          prometheus.io/scrape: 'false'
+        labels:
+          app: discomon
+          deploymentconfig: discomon
+      spec:
+        volumes:
+          - name: discomon-config-volume
+            configMap:
+              name: discomon-config
+              defaultMode: 420
+        containers:
+        - image: jotak/discomon:latest
+          imagePullPolicy: Always
+          name: discomon
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          volumeMounts:
+          - name: discomon-config-volume
+            mountPath: /etc/discomon/
+          env:
+          - name: SCAN_PERIOD
+            value: "${SCAN_PERIOD}"
+        initContainers:
+          - name: wait-grafana
+            image: yauritux/busybox-curl
+            command: ['sh', '-c', 'until curl --connect-timeout 2 -u admin:admin http://grafana:3000/api/datasources; do echo waiting for Grafana; sleep 1; done;']
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: discomon
+    name: discomon
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: discomon
+    type: ClusterIP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: discomon
+  spec:
+    to:
+      kind: Service
+      name: discomon
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: discomon-config
+  data:
+    config.yml: |
+      descriptors:
+        - pattern: "^apache*"
+          name: "apache"
+          category: "http-server"
+        - pattern: "^jvm.*"
+          name: "jvm"
+          category: "jvm"
+        - pattern: "^prometheus.*"
+          name: "prometheus"
+          category: "monitoring"
+        - pattern: "^vertx.*"
+          name: "vertx"
+          category: "framework"
+        - pattern: "^span_count.*"
+          name: "opentracing"
+          category: "monitoring"
+        - pattern: "^Tomcat.*"
+          name: "tomcat"
+          category: "server"
+        - pattern: "^pg_.*"
+          name: "postgres"
+          category: "database"
+        - pattern: "^base:jvm_uptime_seconds"
+          name: "microprofile"
+          category: "jvm"

@@ -61,8 +61,6 @@ There are other possible kinds of federation, see https://www.robustperception.i
             - prometheus-other:9090
 ```
 
-At this point, there is still nothing in Discomon because the master is nothing without slaves.
-
 5. Import `federation-tpl/prometheus-slave.yml`, and set SLAVE parameter to `other`. This slave will collect metrics from pods annotated `prometheus.io/slave: other`.
 6. Select for import `examples/wfapp.yml` and modify its YAML to add the `prometheus.io/slave` annotation:
 
